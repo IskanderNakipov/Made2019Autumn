@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <vector>
+#include <functional>
 
 // Узел бинарного дерева
 struct TreeNode {
@@ -25,22 +26,22 @@ struct TreeNode {
 
 class Tree {
  public:
+  Tree() = default;;
   ~Tree();
-
-  void Print();
-
+  Tree(const Tree& other) {
+    root = other.root;
+  };
+  Tree(Tree&& other) = default;
+  Tree& operator=(const Tree& other) = default;;
+  void PreOrder(std::function<void(TreeNode*)> actor) const;
   void Add(int value);
 
  protected:
-
   TreeNode *root = nullptr;
-  void print_subtree(TreeNode *node);
-
   void delete_subtree(TreeNode *node);
-
-  TreeNode *move_up(TreeNode *node);
-
+  TreeNode *move_up(TreeNode *node) const;
   TreeNode *next(TreeNode *node);
+  void apply_actor(TreeNode *node, const std::function<void(TreeNode *)>& actor) const;
 };
 
 Tree::~Tree() {
@@ -59,7 +60,7 @@ Tree::~Tree() {
  * Повторяем, пока не пройдем все дерево.
  * Собственно, move_up как раз и реализует такой подъем
  */
-TreeNode *Tree::move_up(TreeNode *node) {
+TreeNode *Tree::move_up(TreeNode *node) const {
   if (!node->parent) { return node; }
   TreeNode *parent = node->parent;
   while (parent->right == node or parent->right == nullptr) {
@@ -87,9 +88,8 @@ void Tree::delete_subtree(TreeNode *node) {
   }
   while (n != parent) {
     if (n == node->parent) {
-      if (n->left) {
-        n->left = nullptr;
-      } else { n->right = nullptr; }
+      if (n->left) n->left = nullptr;
+      else n->right = nullptr;
       delete node;
     }
     node = n;
@@ -97,25 +97,25 @@ void Tree::delete_subtree(TreeNode *node) {
   }
 }
 
-void Tree::Print() {
-  std::cout << root->value << " ";  //Реализация pre-order вывода. Сначала выводим корень
-  print_subtree(root->left);  // потом левое поддерево
-  print_subtree(root->right); // потом правое
+void Tree::PreOrder(std::function<void(TreeNode*)> actor) const {
+  actor(root);
+  apply_actor(root->left, actor);
+  apply_actor(root->right, actor);
 }
 
-void Tree::print_subtree(TreeNode *node) {
+void Tree::apply_actor(TreeNode *node, const std::function<void(TreeNode*)>& actor) const {
   if (!node) return;
   TreeNode *parent;
   while (node) {  // собственно, обходим дерево с помощью алгоритма описанного выше
-    std::cout << node->value << " ";
+    actor(node);
     while (node->left) {  // покуда можем спускаться налево
       node = node->left; // спускаемся
-      std::cout << node->value << " ";
+      actor(node);
     }
     if (!node->right) {  // если не сожем шагнуть вправо
       parent = move_up(node);  // то поднимаемся наверх
-      if (parent == root) { return; }  // если вернулись в корень - поддерево распечатано
-      else { node = parent->right; } // иначе - шагаем вправо и продолжаем движение
+      if (parent == root) return; // если вернулись в корень - поддерево распечатано
+      else node = parent->right; // иначе - шагаем вправо и продолжаем движение
     }
     else { node = node->right; }
   }
@@ -182,6 +182,7 @@ int main() {
     std::cin >> value;
     tree.Add(value);
   }
-  tree.Print();
+  std::function<void(TreeNode*)> print = [](TreeNode* node) { std::cout << node->value << " "; };
+  tree.PreOrder(print);
   return 0;
 }
