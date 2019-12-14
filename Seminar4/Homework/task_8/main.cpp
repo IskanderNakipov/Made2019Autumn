@@ -131,7 +131,7 @@ bool HashTable::Add(const std::string& key) {
       vacant = (vacant == table.size()) ? hash : vacant; // поставим значение в эту ячейку
     }
     if (is_empty(table[hash])){
-      set(hash, key);
+      set(vacant, key);
       return true;
     }
     hash += step;
